@@ -109,7 +109,38 @@ func (e *Enforcer) DeletePermissionsForUser(user string) bool {
 
 // GetPermissionsForUser gets permissions for a user or role.
 func (e *Enforcer) GetPermissionsForUser(user string) [][]string {
-	return e.GetFilteredPolicy(0, user)
+	ast, ok := e.model["g"]["g"]
+	var f func(args ...interface{}) bool
+	res := make([][]string, 0, 5)
+	if ok {
+		rm := ast.RM
+		f = func(args ...interface{}) bool {
+			if rm == nil {
+				name1 := args[0].(string)
+				name2 := args[1].(string)
+				return name1 == name2
+			}
+
+			if len(args) == 2 {
+				name1 := args[0].(string)
+				name2 := args[1].(string)
+				return (bool)(rm.HasLink(name1, name2))
+			}
+
+			return false
+		}
+	} else {
+		f = func(args ...interface{}) bool {
+			return args[0].(string) == args[2].(string)
+		}
+	}
+	for _, v := range e.model["p"]["p"].Policy {
+		ok = f(user, v[0])
+		if ok {
+			res = append(res, v)
+		}
+	}
+	return res
 }
 
 // HasPermissionForUser determines whether a user has a permission.
