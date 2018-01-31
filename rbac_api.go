@@ -124,7 +124,8 @@ func (e *Enforcer) GetPermissionsForUser(user string) [][]string {
 			if len(args) == 2 {
 				name1 := args[0].(string)
 				name2 := args[1].(string)
-				return (bool)(rm.HasLink(name1, name2))
+				pass, _ := rm.HasLink(name1, name2)
+				return pass
 			}
 
 			return false

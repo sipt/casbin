@@ -284,15 +284,15 @@ type testCustomRoleManager struct{}
 
 func (rm *testCustomRoleManager) AddLink(name1 string, name2 string, domain ...string)    {}
 func (rm *testCustomRoleManager) DeleteLink(name1 string, name2 string, domain ...string) {}
-func (rm *testCustomRoleManager) HasLink(name1 string, name2 string, domain ...string) bool {
+func (rm *testCustomRoleManager) HasLink(name1 string, name2 string, domain ...string) (bool, int) {
 	if name1 == "alice" && name2 == "alice" {
-		return true
+		return true, 10
 	} else if name1 == "alice" && name2 == "data2_admin" {
-		return true
+		return true, 10
 	} else if name1 == "bob" && name2 == "bob" {
-		return true
+		return true, 10
 	}
-	return false
+	return false, 10
 }
 func (rm *testCustomRoleManager) GetRoles(name string, domain ...string) []string {
 	return []string{}

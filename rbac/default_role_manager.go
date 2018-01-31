@@ -87,18 +87,18 @@ func (rm *defaultRoleManager) DeleteLink(name1 string, name2 string, domain ...s
 
 // HasLink determines whether role: name1 inherits role: name2.
 // domain is a prefix to the roles.
-func (rm *defaultRoleManager) HasLink(name1 string, name2 string, domain ...string) bool {
+func (rm *defaultRoleManager) HasLink(name1 string, name2 string, domain ...string) (bool, int) {
 	if len(domain) == 1 {
 		name1 = domain[0] + "::" + name1
 		name2 = domain[0] + "::" + name2
 	}
 
 	if name1 == name2 {
-		return true
+		return true, rm.level
 	}
 
 	if !rm.hasRole(name1) || !rm.hasRole(name2) {
-		return false
+		return false, rm.level
 	}
 
 	role1 := rm.createRole(name1)
@@ -179,21 +179,21 @@ func (r *Role) deleteRole(role *Role) {
 	}
 }
 
-func (r *Role) hasRole(name string, level int) bool {
+func (r *Role) hasRole(name string, level int) (bool, int) {
 	if r.name == name {
-		return true
+		return true, level
 	}
 
 	if level <= 0 {
-		return false
+		return false, level
 	}
 
 	for _, role := range r.roles {
-		if role.hasRole(name, level-1) {
-			return true
+		if ok, l := role.hasRole(name, level-1); ok {
+			return true, l
 		}
 	}
-	return false
+	return false, level
 }
 
 func (r *Role) hasDirectRole(name string) bool {

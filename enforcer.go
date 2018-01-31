@@ -27,11 +27,14 @@ import (
 )
 
 // Effect is the result for a policy rule.
-type Effect int
+type Effect struct {
+	Eft   int
+	Level int
+}
 
 // Values for policy effect.
 const (
-	EffectAllow Effect = iota
+	EffectAllow         = iota
 	EffectIndeterminate
 	EffectDeny
 )
@@ -46,8 +49,8 @@ type Enforcer struct {
 	adapter persist.Adapter
 	watcher persist.Watcher
 
-	enabled  bool
-	autoSave bool
+	enabled            bool
+	autoSave           bool
 	autoBuildRoleLinks bool
 }
 
@@ -197,7 +200,7 @@ func (e *Enforcer) SetAdapter(adapter persist.Adapter) {
 // SetWatcher sets the current watcher.
 func (e *Enforcer) SetWatcher(watcher persist.Watcher) {
 	e.watcher = watcher
-	watcher.SetUpdateCallback(func (string) {e.LoadPolicy()})
+	watcher.SetUpdateCallback(func(string) { e.LoadPolicy() })
 }
 
 // SetRoleManager sets the constructor function for creating a RoleManager.
@@ -277,6 +280,7 @@ func (e *Enforcer) Enforce(rvals ...interface{}) bool {
 	}
 
 	_, ok := e.model["g"]
+	level := 10
 	if ok {
 		for key, ast := range e.model["g"] {
 			rm := ast.RM
@@ -287,19 +291,19 @@ func (e *Enforcer) Enforce(rvals ...interface{}) bool {
 
 					return name1 == name2, nil
 				}
-
+				var ok bool
 				if len(args) == 2 {
 					name1 := args[0].(string)
 					name2 := args[1].(string)
-
-					return (bool)(rm.HasLink(name1, name2)), nil
+					ok, level = rm.HasLink(name1, name2)
+					return ok, nil
 				}
 
 				name1 := args[0].(string)
 				name2 := args[1].(string)
 				domain := args[2].(string)
-
-				return (bool)(rm.HasLink(name1, name2, domain)), nil
+				ok, level = rm.HasLink(name1, name2, domain)
+				return ok, nil
 			}
 		}
 	}
@@ -310,7 +314,7 @@ func (e *Enforcer) Enforce(rvals ...interface{}) bool {
 		policyResults = make([]Effect, len(e.model["p"]["p"].Policy))
 
 		for i, pvals := range e.model["p"]["p"].Policy {
-			// util.LogPrint("Policy Rule: ", pvals)
+			util.LogPrint("Policy Rule: ", pvals)
 
 			parameters := make(map[string]interface{}, 8)
 			for j, token := range e.model["r"]["r"].Tokens {
@@ -324,26 +328,46 @@ func (e *Enforcer) Enforce(rvals ...interface{}) bool {
 			// util.LogPrint("Result: ", result)
 
 			if err != nil {
-				policyResults[i] = EffectIndeterminate
+				policyResults[i] = Effect{
+					Eft:   EffectIndeterminate,
+					Level: level,
+				}
 				panic(err)
 			} else {
 				if !result.(bool) {
-					policyResults[i] = EffectIndeterminate
+					policyResults[i] = Effect{
+						Eft:   EffectIndeterminate,
+						Level: level,
+					}
 				} else {
 					if effect, ok := parameters["p_eft"]; ok {
 						if effect == "allow" {
-							policyResults[i] = EffectAllow
+							policyResults[i] = Effect{
+								Eft:   EffectAllow,
+								Level: level,
+							}
 						} else if effect == "deny" {
-							policyResults[i] = EffectDeny
+							policyResults[i] = Effect{
+								Eft:   EffectDeny,
+								Level: level,
+							}
 						} else {
-							policyResults[i] = EffectIndeterminate
+							policyResults[i] = Effect{
+								Eft:   EffectIndeterminate,
+								Level: level,
+							}
 						}
 					} else {
-						policyResults[i] = EffectAllow
+						policyResults[i] = Effect{
+							Eft:   EffectAllow,
+							Level: level,
+						}
 					}
 
 					if e.model["e"]["e"].Value == "priority(p_eft) || deny" {
 						break
+					}else if e.model["e"]["e"].Value == "max_weight(p_eft != deny)"{
+
 					}
 				}
 			}
@@ -363,24 +387,33 @@ func (e *Enforcer) Enforce(rvals ...interface{}) bool {
 		// util.LogPrint("Result: ", result)
 
 		if err != nil {
-			policyResults[0] = EffectIndeterminate
+			policyResults[0] = Effect{
+				Eft:   EffectIndeterminate,
+				Level: level,
+			}
 			panic(err)
 		} else {
 			if result.(bool) {
-				policyResults[0] = EffectAllow
+				policyResults[0] = Effect{
+					Eft:   EffectAllow,
+					Level: level,
+				}
 			} else {
-				policyResults[0] = EffectIndeterminate
+				policyResults[0] = Effect{
+					Eft:   EffectIndeterminate,
+					Level: level,
+				}
 			}
 		}
 	}
 
-	// util.LogPrint("Rule Results: ", policyResults)
+	util.LogPrint("Rule Results: ", policyResults)
 
 	result := false
 	if e.model["e"]["e"].Value == "some(where (p_eft == allow))" {
 		result = false
 		for _, eft := range policyResults {
-			if eft == EffectAllow {
+			if eft.Eft == EffectAllow {
 				result = true
 				break
 			}
@@ -388,7 +421,7 @@ func (e *Enforcer) Enforce(rvals ...interface{}) bool {
 	} else if e.model["e"]["e"].Value == "!some(where (p_eft == deny))" {
 		result = true
 		for _, eft := range policyResults {
-			if eft == EffectDeny {
+			if eft.Eft == EffectDeny {
 				result = false
 				break
 			}
@@ -396,9 +429,9 @@ func (e *Enforcer) Enforce(rvals ...interface{}) bool {
 	} else if e.model["e"]["e"].Value == "some(where (p_eft == allow)) && !some(where (p_eft == deny))" {
 		result = false
 		for _, eft := range policyResults {
-			if eft == EffectAllow {
+			if eft.Eft == EffectAllow {
 				result = true
-			} else if eft == EffectDeny {
+			} else if eft.Eft == EffectDeny {
 				result = false
 				break
 			}
@@ -406,13 +439,21 @@ func (e *Enforcer) Enforce(rvals ...interface{}) bool {
 	} else if e.model["e"]["e"].Value == "priority(p_eft) || deny" {
 		result = false
 		for _, eft := range policyResults {
-			if eft != EffectIndeterminate {
-				if eft == EffectAllow {
+			if eft.Eft != EffectIndeterminate {
+				if eft.Eft == EffectAllow {
 					result = true
 				} else {
 					result = false
 				}
 				break
+			}
+		}
+	} else if e.model["e"]["e"].Value == "max_weight(p_eft != deny)" {
+		result = false
+		l := -1
+		for _, eft := range policyResults {
+			if l < eft.Level {
+				result = eft.Eft != EffectAllow
 			}
 		}
 	}

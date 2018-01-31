@@ -16,7 +16,7 @@ package rbac
 
 import (
 	"sort"
-	
+
 	"github.com/casbin/casbin/util"
 )
 
@@ -79,17 +79,17 @@ func (rm *sessionRoleManager) DeleteLink(name1 string, name2 string, unused ...s
 	role1.deleteSessions(role2.name)
 }
 
-func (rm *sessionRoleManager) HasLink(name1 string, name2 string, requestTime ...string) bool {
+func (rm *sessionRoleManager) HasLink(name1 string, name2 string, requestTime ...string) (bool, int) {
 	if len(requestTime) != 1 {
-		return false
+		return false, rm.maxHierarchyLevel
 	}
 
 	if name1 == name2 {
-		return true
+		return true, rm.maxHierarchyLevel
 	}
 
 	if !rm.hasRole(name1) || !rm.hasRole(name2) {
-		return false
+		return false, rm.maxHierarchyLevel
 	}
 
 	role1 := rm.createRole(name1)
@@ -177,22 +177,22 @@ func (sr *SessionRole) getSessionRoles(requestTime string) []string {
 	return names
 }
 
-func (sr *SessionRole) hasValidSession(name string, hierarchyLevel int, requestTime string) bool {
+func (sr *SessionRole) hasValidSession(name string, hierarchyLevel int, requestTime string) (bool, int) {
 	if hierarchyLevel == 1 {
-		return sr.name == name
+		return sr.name == name, hierarchyLevel
 	}
 
 	for _, s := range sr.sessions {
 		if s.startTime <= requestTime && requestTime <= s.endTime {
 			if s.role.name == name {
-				return true
+				return true, hierarchyLevel
 			}
-			if s.role.hasValidSession(name, hierarchyLevel-1, requestTime) {
-				return true
+			if ok, l := s.role.hasValidSession(name, hierarchyLevel-1, requestTime); ok {
+				return true, l
 			}
 		}
 	}
-	return false
+	return false, hierarchyLevel
 }
 
 func (sr *SessionRole) hasDirectRole(name string, requestTime string) bool {

@@ -24,7 +24,7 @@ type RoleManager interface {
 	DeleteLink(name1 string, name2 string, domain ...string)
 	// HasLink determines whether a link exists between two roles. role: name1 inherits role: name2.
 	// domain is a prefix to the roles (can be used for other purposes).
-	HasLink(name1 string, name2 string, domain ...string) bool
+	HasLink(name1 string, name2 string, domain ...string) (bool, int)
 	// GetRoles gets the roles that a user inherits.
 	// domain is a prefix to the roles (can be used for other purposes).
 	GetRoles(name string, domain ...string) []string
