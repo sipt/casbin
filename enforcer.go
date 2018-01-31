@@ -314,7 +314,7 @@ func (e *Enforcer) Enforce(rvals ...interface{}) bool {
 		policyResults = make([]Effect, len(e.model["p"]["p"].Policy))
 
 		for i, pvals := range e.model["p"]["p"].Policy {
-			util.LogPrint("Policy Rule: ", pvals)
+			//util.LogPrint("Policy Rule: ", pvals)
 
 			parameters := make(map[string]interface{}, 8)
 			for j, token := range e.model["r"]["r"].Tokens {
@@ -366,7 +366,7 @@ func (e *Enforcer) Enforce(rvals ...interface{}) bool {
 
 					if e.model["e"]["e"].Value == "priority(p_eft) || deny" {
 						break
-					}else if e.model["e"]["e"].Value == "max_weight(p_eft != deny)"{
+					} else if e.model["e"]["e"].Value == "max_weight(p_eft != deny)" {
 
 					}
 				}
@@ -407,7 +407,7 @@ func (e *Enforcer) Enforce(rvals ...interface{}) bool {
 		}
 	}
 
-	util.LogPrint("Rule Results: ", policyResults)
+	//util.LogPrint("Rule Results: ", policyResults)
 
 	result := false
 	if e.model["e"]["e"].Value == "some(where (p_eft == allow))" {
