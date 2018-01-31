@@ -407,7 +407,7 @@ func (e *Enforcer) Enforce(rvals ...interface{}) bool {
 		}
 	}
 
-	util.LogPrint("Rule Results: ", policyResults)
+	//util.LogPrint("Rule Results: ", policyResults)
 
 	result := false
 	if e.model["e"]["e"].Value == "some(where (p_eft == allow))" {
