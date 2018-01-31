@@ -110,34 +110,35 @@ func (e *Enforcer) DeletePermissionsForUser(user string) bool {
 // GetPermissionsForUser gets permissions for a user or role.
 func (e *Enforcer) GetPermissionsForUser(user string) [][]string {
 	ast, ok := e.model["g"]["g"]
-	var f func(args ...interface{}) bool
+	var f func(args ...interface{}) (bool, int)
 	res := make([][]string, 0, 5)
 	if ok {
 		rm := ast.RM
-		f = func(args ...interface{}) bool {
+		f = func(args ...interface{}) (bool, int) {
 			if rm == nil {
 				name1 := args[0].(string)
 				name2 := args[1].(string)
-				return name1 == name2
+				return name1 == name2, 10
 			}
 
 			if len(args) == 2 {
 				name1 := args[0].(string)
 				name2 := args[1].(string)
-				pass, _ := rm.HasLink(name1, name2)
-				return pass
+				return rm.HasLink(name1, name2)
 			}
 
-			return false
+			return false, 10
 		}
 	} else {
-		f = func(args ...interface{}) bool {
-			return args[0].(string) == args[2].(string)
+		f = func(args ...interface{}) (bool, int) {
+			return true, 10
 		}
 	}
+	var level int
 	for _, v := range e.model["p"]["p"].Policy {
-		ok = f(user, v[0])
+		ok, level = f(user, v[0])
 		if ok {
+			v = append(v, string(level))
 			res = append(res, v)
 		}
 	}

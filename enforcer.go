@@ -288,7 +288,7 @@ func (e *Enforcer) Enforce(rvals ...interface{}) bool {
 				if rm == nil {
 					name1 := args[0].(string)
 					name2 := args[1].(string)
-
+					level = 10
 					return name1 == name2, nil
 				}
 				var ok bool
