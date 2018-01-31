@@ -407,7 +407,7 @@ func (e *Enforcer) Enforce(rvals ...interface{}) bool {
 		}
 	}
 
-	//util.LogPrint("Rule Results: ", policyResults)
+	util.LogPrint("Rule Results: ", policyResults)
 
 	result := false
 	if e.model["e"]["e"].Value == "some(where (p_eft == allow))" {
@@ -448,12 +448,15 @@ func (e *Enforcer) Enforce(rvals ...interface{}) bool {
 				break
 			}
 		}
-	} else if e.model["e"]["e"].Value == "max_weight(p_eft != deny)" {
-		result = false
+	} else if e.model["e"]["e"].Value == "max_weight(where (p_eft != deny)) || any(where (p_eft == indeterminate))" {
+		result = true
 		l := -1
 		for _, eft := range policyResults {
-			if l < eft.Level {
-				result = eft.Eft != EffectAllow
+			if eft.Eft != EffectIndeterminate {
+				if l < eft.Level {
+					result = eft.Eft == EffectAllow
+					l = eft.Level
+				}
 			}
 		}
 	}

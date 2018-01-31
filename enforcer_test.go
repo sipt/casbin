@@ -192,7 +192,7 @@ p = sub, obj, act, eft
 g = _, _
 
 [policy_effect]
-e = max_weight(p_eft != deny)
+e = max_weight(where (p_eft != deny)) || any(where (p_eft == indeterminate))
 
 [matchers]
 m = g(r.sub, p.sub) && r.obj == p.obj && r.act == p.act
@@ -208,13 +208,14 @@ m = g(r.sub, p.sub) && r.obj == p.obj && r.act == p.act
 	e.AddPermissionForUser("bob", "data1", "read", "deny")
 	e.AddPermissionForUser("cathy", "data1", "read", "allow")
 	e.AddPermissionForUser("alice", "data2", "read", "deny")
-	e.AddPermissionForUser("bob", "data2", "read", "deny")
-	e.AddPermissionForUser("cathy", "data2", "read", "allow")
+	e.AddPermissionForUser("bob", "data2", "read", "allow")
+	e.AddPermissionForUser("cathy", "data2", "read", "deny")
 	e.AddRoleForUser("cathy", "bob")
 	e.AddRoleForUser("bob", "alice")
 
 	testEnforce(t, e, "cathy", "data1", "read", true)
 	testEnforce(t, e, "cathy", "data2", "read", false)
+	testEnforce(t, e, "cathy", "data2", "write", true)
 }
 
 func TestNotUsedRBACModelInMemory(t *testing.T) {
